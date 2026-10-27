@@ -76,7 +76,7 @@ function mix(lo, hi, t){ const a=hex2rgb(lo), b=hex2rgb(hi); return 'rgb('+a.map
 function colorOf(c, t){ return mix(cats[c].lo, cats[c].hi, t); }
 const fmt = n => n.toLocaleString('he-IL');
 
-const map = L.map('map', { preferCanvas: true, minZoom: 6, maxZoom: 19 }).setView([31.85, 35.05], 9);
+const map = L.map('map', { preferCanvas: true, minZoom: 6, maxZoom: 19 }).setView([31.95, 35.0], 11);
 const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/';
 const street = L.tileLayer(ESRI + 'World_Street_Map/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, maxNativeZoom: 17, attribution: 'Tiles © Esri' });
 const gray = L.tileLayer(ESRI + 'Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, maxNativeZoom: 16, attribution: 'Tiles © Esri' });
