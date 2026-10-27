@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>קלפיות לפי קבוצה</title>
+<title>בחירות - ניתוח קלפיות</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
 <style>
   :root { --panel: rgba(255,255,255,.96); --panel-solid: #fff; --fg: #1f2328; --muted: #5d646c; --faint: #9aa1a8; --line: #e3e6ea; --ctl: #f3f5f7; --ctl-line: #b9c0c7;
@@ -17,7 +17,14 @@
   .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--panel-solid); color: var(--fg); }
   .leaflet-container a.leaflet-popup-close-button { color: var(--muted); }
   .leaflet-tooltip.tip { background: var(--panel-solid); color: var(--fg); border-color: var(--line); }
-  @media (max-width: 640px) { .filter, .search { width: calc(100vw - 20px); } .filter { max-height: 48vh; } }
+  .filter { position: relative; }
+  .fold { position: absolute; top: 6px; left: 8px; width: 34px; height: 30px; border: 0; border-radius: 6px; background: transparent; color: var(--fg);
+          font-size: 22px; line-height: 1; letter-spacing: 1px; cursor: pointer; padding: 0; }
+  .fold:hover, .fold:focus-visible { background: var(--ctl); }
+  .filter.collapsed { width: auto; padding: 4px; }
+  .filter.collapsed > :not(.fold) { display: none; }
+  .filter.collapsed .fold { position: static; display: block; }
+  @media (max-width: 640px) { .filter:not(.collapsed), .search { width: calc(100vw - 20px); } .filter { max-height: 48vh; } .search { width: calc(100vw - 20px); } }
   html, body, #map { height: 100%; margin: 0; }
   body { font-family: system-ui, "Segoe UI", Arial, sans-serif; }
   .panel { background: var(--panel); border-radius: 8px; box-shadow: 0 1px 6px rgba(0,0,0,.35);
@@ -65,7 +72,7 @@
 <div id="map"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <script>
-const DATA = {"cats":[{"key":"arabs","he":"ערבים","lo":"#B7E4B0","hi":"#16A34A"},{"key":"ultra_left","he":"שמאל","lo":"#FFC1CC","hi":"#D6203A"},{"key":"left","he":"מרכז-שמאל","lo":"#E6D3FA","hi":"#9333EA"},{"key":"center","he":"ממוצע ארצי","lo":"#FFF3A3","hi":"#F4F1E8"},{"key":"right","he":"מרכז-ימין","lo":"#B5D3F7","hi":"#1D6FE0"},{"key":"ultra_right","he":"ימין","lo":"#FFD9A8","hi":"#F07C00"},{"key":"haredim","he":"חרדים","lo":"#5A5A5A","hi":"#000000"}],"elections":[{"id":25,"name":"הכנסת ה-25","date":"נובמבר 2022","available":true,"share":[12.764277568207737,11.299236775155716,23.42310729011317,3.5441705412755504,35.28379682428283,5.886481270286867,7.79892973067813],"turnout":[53.45117136805976,64.29756237775082,69.03922488842764,50.15513819433009,62.32551654223542,72.63431683329269,72.66637796285386],"shown":11399,"with_votes":11707,"counts":[1455,1288,2670,404,4022,671,889],"precision":{"street":8004,"locality":3158,"venue":237}},{"id":24,"name":"הכנסת ה-24","date":"מרץ 2021","available":true,"share":[12.845362577573749,11.27263453200714,23.038340559381112,3.7660460766811186,35.679673552665136,5.63631726600357,7.761625435688175],"turnout":[44.10047005722978,66.14561516528532,68.86660088346967,49.1499737541697,58.33239554707587,71.11051037109083,69.69240808875045],"shown":11763,"with_votes":12127,"counts":[1511,1326,2710,443,4197,663,913],"precision":{"street":7808,"locality":3724,"venue":231}},{"id":23,"name":"הכנסת ה-23","date":"מרץ 2020","available":true,"share":[11.27484246243335,14.910324769752787,21.832283082888996,3.257392147358216,35.39505574406205,6.136694134755211,7.193407658749394],"turnout":[65.27456118966357,68.87460769197274,69.71461078283848,53.851343641946826,62.2331501855722,73.46873226177127,73.60109013141951],"shown":10315,"with_votes":10631,"counts":[1163,1538,2252,336,3651,633,742],"precision":{"street":6910,"locality":3195,"venue":210}},{"id":22,"name":"הכנסת ה-22","date":"ספטמבר 2019","available":true,"share":[11.061080657791699,12.754502740798747,22.49412685982772,2.9169929522317934,37.40211433046202,6.088488645262333,7.282693813625685],"turnout":[59.36106458704072,68.77149075663506,70.19854038966217,52.85429936305732,61.664048799085016,73.30258073263882,73.95983458280054],"shown":10216,"with_votes":10537,"counts":[1130,1303,2298,298,3821,622,744],"precision":{"street":6744,"locality":3265,"venue":207}},{"id":21,"name":"הכנסת ה-21","date":"אפריל 2019","available":true,"share":[10.778502272278207,11.203319502074688,24.086148982414542,3.24046631100573,37.858130804188896,5.591780280576961,7.241651847460976],"turnout":[48.9136636018974,68.50304198150995,72.0942311008619,52.25521518511558,62.05774625596324,75.04008617754307,73.11607610776586],"shown":10122,"with_votes":10460,"counts":[1091,1134,2438,328,3832,566,733],"precision":{"street":6564,"locality":3363,"venue":195}},{"id":20,"name":"הכנסת ה-20","date":"מרץ 2015","available":true,"share":[9.922372611464969,12.509952229299364,22.78065286624204,3.602707006369427,37.41042993630573,6.160429936305732,7.613455414012739],"turnout":[64.70791409887995,71.01396400915732,74.10092510668521,54.858246427191965,63.82552930207173,76.36091950553183,74.81709139429424],"shown":10048,"with_votes":10465,"counts":[997,1257,2289,362,3759,619,765],"precision":{"street":5747,"locality":4119,"venue":182}}]};
+const DATA = {"cats":[{"key":"arabs","he":"ערבים","lo":"#B7E4B0","hi":"#16A34A"},{"key":"ultra_left","he":"שמאל","lo":"#FFC1CC","hi":"#D6203A"},{"key":"left","he":"מרכז-שמאל","lo":"#E6D3FA","hi":"#9333EA"},{"key":"center","he":"ממוצע ארצי","lo":"#FFF3A3","hi":"#F4F1E8"},{"key":"right","he":"מרכז-ימין","lo":"#B5D3F7","hi":"#1D6FE0"},{"key":"ultra_right","he":"ימין","lo":"#FFD9A8","hi":"#F07C00"},{"key":"haredim","he":"חרדים","lo":"#5A5A5A","hi":"#000000"}],"elections":[{"id":25,"name":"הכנסת ה-25","date":"נובמבר 2022","available":true,"share":[13.180639585133967,11.322385479688851,23.38807260155575,3.509075194468453,34.84874675885912,6.024200518582541,7.726879861711322],"turnout":[53.70936311437264,64.29365716330142,69.04224976776518,50.12923252763238,62.349986045213505,72.73848522699599,72.72712146422629],"shown":11570,"with_votes":11707,"counts":[1525,1310,2706,406,4032,697,894],"precision":{"street":8192,"locality":3138,"venue":240}},{"id":24,"name":"הכנסת ה-24","date":"מרץ 2021","available":true,"share":[13.18140078470657,11.328157609149345,23.048668503213957,3.7231822355789297,35.12814091326488,5.927038984890225,7.663410969196093],"turnout":[44.497372779373045,66.1863920138722,68.89660776429601,49.15100995804692,58.36186030725136,71.13208688812247,69.74812342290848],"shown":11979,"with_votes":12127,"counts":[1579,1357,2761,446,4208,710,918],"precision":{"street":8415,"locality":3325,"venue":239}},{"id":23,"name":"הכנסת ה-23","date":"מרץ 2020","available":true,"share":[11.59847764034253,15.033301617507137,21.788772597526165,3.254043767840152,34.85252140818268,6.37488106565176,7.098001902949572],"turnout":[65.59300204058593,68.91810987623413,69.73846727132619,53.82769118782615,62.260819988597376,73.68447114319595,73.65283521783739],"shown":10510,"with_votes":10631,"counts":[1219,1580,2290,342,3663,670,746],"precision":{"street":7542,"locality":2744,"venue":224}},{"id":22,"name":"הכנסת ה-22","date":"ספטמבר 2019","available":true,"share":[11.375635979648651,12.873188057982144,22.51127963905155,2.918306614188346,36.805222232888546,6.335797254487856,7.1805702217529035],"turnout":[59.71188580428234,68.83973208354283,70.21547308933508,52.83240239144469,61.70173761946134,73.50992145734358,74.01509282984175],"shown":10417,"with_votes":10537,"counts":[1185,1341,2345,304,3834,660,748],"precision":{"street":7465,"locality":2732,"venue":220}},{"id":21,"name":"הכנסת ה-21","date":"אפריל 2019","available":true,"share":[11.073500967117988,11.27659574468085,24.148936170212767,3.2011605415860735,37.27272727272727,5.909090909090909,7.117988394584139],"turnout":[49.46644613450401,68.58772032955603,72.13756498201516,52.11486648149882,62.099081854459335,75.31365154925942,73.16350799196864],"shown":10340,"with_votes":10460,"counts":[1145,1166,2497,331,3854,611,736],"precision":{"street":7406,"locality":2724,"venue":210}},{"id":20,"name":"הכנסת ה-20","date":"מרץ 2015","available":true,"share":[10.612205484743145,12.61104673619158,22.856315179606025,3.5341830822711473,36.53920432599459,6.431054461181923,7.415990730011588],"turnout":[65.1874019507537,71.1403606574693,74.1743868971027,54.76715447487976,63.862499926512385,76.76741321796997,74.85304488193219],"shown":10356,"with_votes":10465,"counts":[1099,1306,2367,366,3784,666,768],"precision":{"street":7069,"locality":3068,"venue":219}}]};
 const cats = DATA.cats, ELS = DATA.elections;
 // station row: [lat, lon, radius_m, cat, shade, valid, eligible, voted, nAgree, ballot, locality, venue, address, topParties, [3 labels], precision]
 const LAT=0, LON=1, RM=2, CAT=3, SHADE=4, VALID=5, ELIG=6, VOTED=7, NAGREE=8, BALLOT=9, LOC=10, VENUE=11, ADDR=12, TOP=13, LABELS=14, PREC=15;
@@ -95,19 +102,107 @@ function px(rm, lat, z){ return Math.max(MINPX, closeScale(z) * rm / (156543.033
 const loading = {};
 function ensure(e){
   if (e.stations) return Promise.resolve();
-  return loading[e.id] || (loading[e.id] = fetch('data/k' + e.id + '.json').then(r => r.json()).then(j => { e.stations = j.stations; e.layouts = j.layouts; }));
+  return loading[e.id] || (loading[e.id] = fetch('data/k' + e.id + '.json').then(r => r.json()).then(j => { e.stations = j.stations; }));
 }
-// zoom-dependent positions: from zoom 13 up the base position (row lat/lon) applies; below, a layout reserved for the
-// minimum on-screen dot size (offsets in metres from the base position, one pair per station)
-const MX = 111320 * Math.cos(31.5 * Math.PI / 180), MY = 110574;
-const layoutKey = z => z >= 13 ? null : String(Math.max(8, Math.floor(z)));
-function applyLayout(e, b, z){
-  const off = e.layouts && e.layouts[layoutKey(z)];
-  for (const m of b.markers) {
-    const s = e.stations[m._i];
-    m.setLatLng(off ? [s[LAT] + off[2 * m._i + 1] / MY, s[LON] + off[2 * m._i] / MX] : [s[LAT], s[LON]]);
+// ---- one layout method for every zoom ----
+// A dot's room at zoom z is its drawn radius in metres: max(closeScale(z) * ground radius, a minimum on-screen size).
+// A worker starts every dot at its true (geocoded) position and moves it as little as possible so no two dots overlap
+// (pairwise repulsion + a weak spring back to the true position). Results are cached per election and zoom.
+const MX = 111320 * Math.cos(31.5 * Math.PI / 180), MY = 110574, MPP0 = 156543.03392 * Math.cos(31.5 * Math.PI / 180);
+const LAYOUT_PX = 1.1;     // pixel radius reserved for the smallest dots
+const WORKER_SRC = `
+onmessage = ev => {
+  const { id, x0, y0, r, iters } = ev.data, n = x0.length;
+  const x = new Float64Array(n), y = new Float64Array(n);
+  for (let i = 0; i < n; i++) { x[i] = x0[i] + ((i * 2654435761) % 1000) / 1000 - 0.5; y[i] = y0[i] + ((i * 40503) % 1000) / 1000 - 0.5; }
+  const sorted = Float64Array.from(r).sort();
+  const rq = sorted[Math.min(n - 1, Math.floor(n * 0.99))], cell = 2 * rq;
+  const big = []; for (let i = 0; i < n; i++) if (r[i] > rq) big.push(i);
+  const isBig = new Uint8Array(n); big.forEach(i => isBig[i] = 1);
+  const dx = new Float64Array(n), dy = new Float64Array(n);
+  const push = (i, j) => {
+    const vx = x[i] - x[j], vy = y[i] - y[j];
+    let d = Math.hypot(vx, vy); const ov = r[i] + r[j] - d;
+    if (ov <= 0) return;
+    if (d < 1e-6) d = 1e-6;
+    const k = ov / 2 / d;
+    dx[i] += vx * k; dy[i] += vy * k; dx[j] -= vx * k; dy[j] -= vy * k;
+  };
+  for (let it = 0; it < iters; it++) {
+    const last = it >= iters - Math.floor(iters / 3);
+    dx.fill(0); dy.fill(0);
+    const grid = new Map(), key = (cx, cy) => cx * 100003 + cy, cx = new Int32Array(n), cy = new Int32Array(n);
+    for (let i = 0; i < n; i++) {
+      cx[i] = Math.floor(x[i] / cell); cy[i] = Math.floor(y[i] / cell);
+      const k = key(cx[i], cy[i]); let a = grid.get(k); if (!a) grid.set(k, a = []); a.push(i);
+    }
+    for (let i = 0; i < n; i++) {                       // regular dots: own and neighbouring cells
+      if (isBig[i]) continue;
+      for (let ax = -1; ax <= 1; ax++) for (let ay = -1; ay <= 1; ay++) {
+        const a = grid.get(key(cx[i] + ax, cy[i] + ay)); if (!a) continue;
+        for (const j of a) if (j > i && !isBig[j]) push(i, j);
+      }
+    }
+    for (const b of big) {                               // large dots: every dot within reach
+      const reach = Math.ceil((r[b] + rq) / cell);
+      for (let ax = -reach; ax <= reach; ax++) for (let ay = -reach; ay <= reach; ay++) {
+        const a = grid.get(key(cx[b] + ax, cy[b] + ay)); if (!a) continue;
+        for (const j of a) if (j !== b && !isBig[j]) push(b, j);
+      }
+    }
+    for (let p = 0; p < big.length; p++) for (let q = p + 1; q < big.length; q++) push(big[p], big[q]);
+    const lam = last ? 0 : 0.04;
+    for (let i = 0; i < n; i++) { x[i] += dx[i] + lam * (x0[i] - x[i]); y[i] += dy[i] + lam * (y0[i] - y[i]); }
   }
+  postMessage({ id, x, y }, [x.buffer, y.buffer]);
+};`;
+let worker = null; const jobs = {}; let jobSeq = 0;
+function getWorker(){
+  if (!worker) {
+    worker = new Worker(URL.createObjectURL(new Blob([WORKER_SRC], { type: 'text/javascript' })));
+    worker.onmessage = ev => { const j = jobs[ev.data.id]; delete jobs[ev.data.id]; if (j) j(ev.data); };
+  }
+  return worker;
 }
+const layoutCache = {};        // 'electionId:zoom' -> { x, y } in metres (local frame), whole election; used for zoom <= 12
+const zoomKey = z => Math.max(6, Math.min(18, Math.floor(z)));
+// zoom 13 and up: only the dots in view plus a margin are laid out (a few hundred, so it is quick); dots outside are not visible
+function layoutFor(e, z, idx){
+  const k = e.id + ':' + z;
+  if (!idx && layoutCache[k]) return Promise.resolve(layoutCache[k]);
+  const n = idx ? idx.length : e.stations.length, x0 = new Float64Array(n), y0 = new Float64Array(n), r = new Float64Array(n);
+  const mpp = MPP0 / Math.pow(2, z);
+  for (let q = 0; q < n; q++) {
+    const s = e.stations[idx ? idx[q] : q];
+    x0[q] = (s[LON] - 35) * MX; y0[q] = (s[LAT] - 31.5) * MY;
+    r[q] = Math.max(closeScale(z) * s[RM], LAYOUT_PX * mpp);
+  }
+  return new Promise(res => {
+    const id = ++jobSeq;
+    jobs[id] = out => res(idx ? { x: out.x, y: out.y } : (layoutCache[k] = { x: out.x, y: out.y }));
+    getWorker().postMessage({ id, x0, y0, r, iters: idx ? 150 : 110 });
+  });
+}
+let layoutSeq = 0;
+function updateLayout(e, b){
+  const z = zoomKey(map.getZoom()), seq = ++layoutSeq;
+  let idx = null;
+  if (z >= 13) {
+    const bd = map.getBounds().pad(0.6);
+    idx = [];
+    e.stations.forEach((s, i) => { if (bd.contains([s[LAT], s[LON]])) idx.push(i); });
+  }
+  layoutFor(e, z, idx).then(L_ => {
+    if (seq !== layoutSeq) return;                     // superseded by a newer zoom or pan
+    const n = idx ? idx.length : e.stations.length;
+    for (let q = 0; q < n; q++) b.byIdx[idx ? idx[q] : q].setLatLng([L_.y[q] / MY + 31.5, L_.x[q] / MX + 35]);
+  });
+}
+let moveTimer;
+map.on('moveend', () => {                              // zoom changes end in a moveend too
+  clearTimeout(moveTimer);
+  moveTimer = setTimeout(() => ELS.forEach(e => { if (built[e.id] && elOn[e.id]) updateLayout(e, built[e.id]); }), 120);
+});
 
 const tip = L.tooltip({ direction: 'top', className: 'tip', offset: [0, -4] });
 const built = {};            // election id -> { groups: [layerGroup per category], markers: [] }
@@ -140,7 +235,7 @@ function build(e){
       fillColor: colorOf(s[CAT], s[SHADE]), fillOpacity: 0.82
     });
     m._rm = s[RM]; m._lat = s[LAT];
-    m.bindPopup(() => popupHtml(e, s), { maxWidth: 320, autoPanPaddingTopLeft: [70, 20], autoPanPaddingBottomRight: [340, 20] });
+    m.bindPopup(() => popupHtml(e, s), { maxWidth: Math.min(320, window.innerWidth - 40) });
     m.on('popupopen', () => m.setStyle({ weight: 2.5, opacity: 1, color: '#000' }));
     m.on('popupclose', () => m.setStyle({ weight: 0.8, opacity: 0.6, color: '#222' }));
     m._i = i; byIdx[i] = m;
@@ -153,7 +248,7 @@ function build(e){
     markers.push(m);
   }
   const b = built[e.id] = { groups, markers, byIdx };
-  applyLayout(e, b, z);
+  updateLayout(e, b);
   return b;
 }
 
@@ -175,7 +270,6 @@ map.on('zoomend', () => {
   const z = map.getZoom();
   for (const id in built) {
     built[id].markers.forEach(m => m.setRadius(px(m._rm, m._lat, z)));
-    applyLayout(ELS.find(e => e.id === +id), built[id], z);
   }
 });
 
@@ -194,12 +288,18 @@ function updateLegend(){
   if (!dynEl) return;
   dynEl.innerHTML = '';
 }
+// popups pan clear of the right-hand panel when it is open (and of the search box when it is folded)
+function setPopupPad(panelOpen){
+  const open = panelOpen && window.innerWidth > 640;
+  L.Popup.prototype.options.autoPanPaddingTopLeft = [70, 20];
+  L.Popup.prototype.options.autoPanPaddingBottomRight = [open ? 340 : 20, open ? 20 : 70];
+}
 const catBoxes = [];
 const Filter = L.Control.extend({
   options: { position: 'topright' },
   onAdd() {
     const div = L.DomUtil.create('div', 'panel filter');
-    div.innerHTML = '<h4>בחירות</h4>' + ELS.map(e =>
+    div.innerHTML = '<button class="fold" type="button" aria-label="הצג או הסתר את המקרא" title="הצג/הסתר מקרא">⋯</button><h4>בחירות</h4>' + ELS.map(e =>
       '<label class="' + (e.available ? '' : 'off') + '"><input type="radio" name="election" data-e="' + e.id + '"' + (e.available ? '' : ' disabled') + '>' +
       '<span>' + e.name + ' · ' + e.date + '</span>' + (e.available ? '' : '<span class="soon">בקרוב</span>') + '</label>').join('') +
       '<hr><h4>קבוצות (מקרא)</h4><div class="hint">גוון בהיר = ודאות נמוכה · גוון כהה = ודאות גבוהה</div>' +
@@ -209,9 +309,13 @@ const Filter = L.Control.extend({
       '<span>' + c.he + '</span><span class="n"><b></b><i></i></span></label>').join('') +
       '<div class="btns"><button data-all="1">הכל</button><button data-all="0">נקה</button></div>' +
       '<div class="note">גודל כל עיגול פרופורציוני למספר המצביעים בפועל.<span class="dyn"></span>' +
-      '<div class="fine">הקבוצות הן הערכה סטטיסטית מתוך תוצאות הקלפיות; מיקום וגודל העיגולים משוערים. נתוני בחירות: ועדת הבחירות המרכזית. מיקומים וקו החוף: © תורמי OpenStreetMap.</div></div>';
+      '<div class="fine">הקבוצות הן הערכה סטטיסטית מתוך תוצאות הקלפיות; מיקום וגודל העיגולים משוערים. נתוני בחירות: ועדת הבחירות המרכזית. מיקומים: © תורמי OpenStreetMap.</div></div>';
     L.DomEvent.disableClickPropagation(div);
     L.DomEvent.disableScrollPropagation(div);
+    const fold = div.querySelector('.fold');
+    const setFolded = f => { div.classList.toggle('collapsed', f); fold.textContent = f ? '⋯' : '✕'; fold.setAttribute('aria-expanded', String(!f)); setPopupPad(!f); };
+    fold.addEventListener('click', () => setFolded(!div.classList.contains('collapsed')));
+    setFolded(window.innerWidth <= 640);   // phones start collapsed
     countEls = [...div.querySelectorAll('.n')];
     dynEl = div.querySelector('.dyn');
     const first = ELS.find(e => e.available);
@@ -236,7 +340,7 @@ const Filter = L.Control.extend({
       catBoxes[+b.dataset.c] = b;
       b.addEventListener('change', () => { catOn[+b.dataset.c] = b.checked; refresh(); });
     });
-    div.querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => {
+    div.querySelectorAll('.btns button').forEach(btn => btn.addEventListener('click', () => {
       catBoxes.forEach((b, c) => { b.checked = btn.dataset.all === '1'; catOn[c] = b.checked; });
       refresh();
     }));
