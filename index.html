@@ -87,7 +87,9 @@ L.control.layers({ 'מפה רגילה': street, 'מפה בהירה': gray, 'לו
 L.control.scale({ imperial: false, position: 'bottomright' }).addTo(map);
 
 // metres per screen pixel at a latitude/zoom -> dot radius in pixels
-function px(rm, lat, z){ return Math.max(MINPX, rm / (156543.03392 * Math.cos(lat * Math.PI / 180) / Math.pow(2, z))); }
+// close-up zooms: dots shrink linearly from full ground size at zoom 14 to half at zoom 18, so the map underneath shows through
+const closeScale = z => Math.max(0.5, Math.min(1, 1 - 0.125 * (z - 14)));
+function px(rm, lat, z){ return Math.max(MINPX, closeScale(z) * rm / (156543.03392 * Math.cos(lat * Math.PI / 180) / Math.pow(2, z))); }
 
 // per-election data (stations + zoom layouts) is fetched when the election is first chosen
 const loading = {};
@@ -114,17 +116,15 @@ const catOn = cats.map(() => true);
 
 function popupHtml(e, s){
   const c = cats[s[CAT]];
-  const conf = s[NAGREE] === 3 ? 'כל 3 השיטות מסכימות' : s[NAGREE] === 2 ? '2 מתוך 3 שיטות מסכימות' : 'שלוש השיטות חלוקות (נבחר האמצעי)';
   const turn = s[ELIG] > 0 ? (100 * s[VOTED] / s[ELIG]).toFixed(1) + '% (' + fmt(s[VOTED]) + ' מתוך ' + fmt(s[ELIG]) + ')' : '—';
-  const where = s[PREC] === 'locality' ? '<br><span class="muted">מיקום משוער: מרכז היישוב (הכתובת הרשמית היא שם היישוב בלבד)</span>'
-              : s[PREC] === 'google_unverified' ? '<br><span class="muted">מיקום לא מאומת</span>' : '';
+  const parts = s[TOP] ? s[TOP].split(' · ') : [];
+  const parties = [parts.slice(0, 2).join(' · '), parts.slice(2, 4).join(' · ')].filter(Boolean).join('<br>');
   return '<span class="muted">' + e.name + ' · ' + e.date + '</span><br>' +
     '<b>' + s[LOC] + '</b> · קלפי ' + s[BALLOT] + '<br>' +
-    (s[VENUE] ? s[VENUE] + '<br>' : '') + (s[ADDR] ? '<span class="muted">' + s[ADDR] + '</span>' : '') + where + '<br>' +
+    (s[VENUE] ? s[VENUE] + '<br>' : '') + (s[ADDR] ? '<span class="muted">' + s[ADDR] + '</span><br>' : '') +
     '<div class="turnout"><b>אחוז הצבעה: ' + turn + '</b></div>' +
     '<span class="chip" style="background:' + colorOf(s[CAT], s[SHADE]) + '"></span><b>' + c.he + '</b> · ביטחון ' + Math.round(s[SHADE] * 100) + '%<br>' +
-    '<span class="muted">' + conf + ': ' + s[LABELS].join(' / ') + '</span><br>' +
-    'קולות כשרים: ' + fmt(s[VALID]) + '<br>' + s[TOP];
+    'קולות כשרים: ' + fmt(s[VALID]) + '<br>' + parties;
 }
 
 function build(e){
