@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>קלפיות לפי קבוצה</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<style>
+  :root { --panel: rgba(255,255,255,.96); --panel-solid: #fff; --fg: #1f2328; --muted: #5d646c; --faint: #9aa1a8; --line: #e3e6ea; --ctl: #f3f5f7; --ctl-line: #b9c0c7;
+          --head: #f1f3f5; --hover: #e7eefb; --swatch-line: rgba(0,0,0,.45); --sea: #cfe2ee; --land: #efeadf; --coast: #7ea3bd; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --panel: rgba(30,34,40,.96); --panel-solid: #262b32; --fg: #e8eaed; --muted: #a3abb4; --faint: #6b737c; --line: #3a4048;
+          --ctl: #323840; --ctl-line: #555e68; --head: #30363e; --hover: #34425a; --swatch-line: rgba(255,255,255,.4); --sea: #1d2c38; --land: #2b2f33; --coast: #55809c; color-scheme: dark } }
+  :root[data-theme="dark"] { --panel: rgba(30,34,40,.96); --panel-solid: #262b32; --fg: #e8eaed; --muted: #a3abb4; --faint: #6b737c; --line: #3a4048;
+          --ctl: #323840; --ctl-line: #555e68; --head: #30363e; --hover: #34425a; --swatch-line: rgba(255,255,255,.4); --sea: #1d2c38; --land: #2b2f33; --coast: #55809c; color-scheme: dark }
+  body { background: var(--sea); color: var(--fg); }
+  #map { background: var(--sea); }
+  .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--panel-solid); color: var(--fg); }
+  .leaflet-container a.leaflet-popup-close-button { color: var(--muted); }
+  .leaflet-tooltip.tip { background: var(--panel-solid); color: var(--fg); border-color: var(--line); }
+  @media (max-width: 640px) { .filter, .search { width: calc(100vw - 20px); } .filter { max-height: 48vh; } }
+  html, body, #map { height: 100%; margin: 0; }
+  body { font-family: system-ui, "Segoe UI", Arial, sans-serif; }
+  .panel { background: var(--panel); border-radius: 8px; box-shadow: 0 1px 6px rgba(0,0,0,.35);
+           padding: 10px 12px; font-size: 14px; color: var(--fg); direction: rtl; }
+  .panel h4 { margin: 0 0 6px; font-size: 14px; }
+  .panel h4 + * { margin-top: 0; }
+  .panel hr { border: 0; border-top: 1px solid var(--line); margin: 8px 0; }
+  .filter { max-height: calc(100vh - 100px); overflow-y: auto; }
+  .filter label { display: flex; align-items: center; gap: 8px; padding: 3px 0; cursor: pointer; user-select: none; }
+  .filter label.off { color: var(--faint); cursor: not-allowed; }
+  .filter input { width: 17px; height: 17px; margin: 0; cursor: pointer; }
+  .filter label.off input { cursor: not-allowed; }
+  .swatch { display: inline-block; width: 44px; height: 14px; border-radius: 3px; border: 1px solid var(--swatch-line); }
+  .filter .n { margin-inline-start: auto; display: flex; gap: 2px; font-size: 12px; font-variant-numeric: tabular-nums; }
+  .filter .n b, .filter .n i { width: 46px; text-align: center; font-style: normal; font-weight: 400; }
+  .filter .n b { color: var(--fg); }
+  .filter .n i { color: var(--muted); }
+  .filter .cols { display: flex; padding: 0 0 2px; font-size: 10.5px; color: var(--muted); border-bottom: 1px solid var(--line); margin-bottom: 2px; }
+  .filter .cols span { width: 46px; text-align: center; }
+  .filter .soon { margin-inline-start: auto; font-size: 11px; color: var(--faint); }
+  .btns { display: flex; gap: 6px; margin-top: 6px; }
+  .btns button { flex: 1; font: inherit; font-size: 12px; padding: 3px 6px; border: 1px solid var(--ctl-line); background: var(--ctl); color: var(--fg); border-radius: 4px; cursor: pointer; }
+  .filter { width: 300px; box-sizing: border-box; }
+  .filter .note { font-size: 12px; color: var(--fg); margin-top: 8px; line-height: 1.4; }
+  .filter .hint { font-size: 11px; color: var(--muted); margin: -2px 0 4px; }
+  .search { position: relative; z-index: 1500; width: 300px; box-sizing: border-box; padding: 8px; }
+  .search input { width: 100%; box-sizing: border-box; font: inherit; padding: 6px 8px; border: 1px solid var(--ctl-line); background: var(--panel-solid); color: var(--fg); border-radius: 5px; direction: rtl; }
+  .results { position: absolute; top: 100%; right: 0; left: 0; margin-top: 4px; background: var(--panel-solid); color: var(--fg); border-radius: 8px;
+             box-shadow: 0 2px 10px rgba(0,0,0,.4); max-height: 55vh; overflow-y: auto; z-index: 2000; direction: rtl; }
+  .results .head { position: sticky; top: 0; background: var(--head); font-size: 12px; color: var(--muted); padding: 4px 10px; }
+  .results .it { padding: 6px 10px; cursor: pointer; border-top: 1px solid var(--line); font-size: 13px; line-height: 1.3; }
+  .results .it:hover, .results .it.act { background: var(--hover); }
+  .results .it small { color: var(--muted); display: block; }
+  .title { font-weight: 600; font-size: 15px; }
+  .leaflet-popup-content { direction: rtl; text-align: right; font-size: 13px; line-height: 1.45; min-width: 220px; }
+  .leaflet-popup-content b { font-size: 14px; }
+  .leaflet-tooltip.tip { direction: rtl; font-size: 12px; padding: 3px 6px; }
+  .chip { display: inline-block; width: 11px; height: 11px; border-radius: 50%; border: 1px solid var(--fg); vertical-align: middle; margin-inline-end: 4px; }
+  .muted { color: var(--muted); }
+  .filter .fine { font-size: 10.5px; color: var(--muted); margin-top: 6px; line-height: 1.35; }
+  .turnout { margin: 2px 0; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script>
+const DATA = {"cats":[{"key":"arabs","he":"ערבים","lo":"#B7E4B0","hi":"#16A34A"},{"key":"ultra_left","he":"שמאל","lo":"#FFC1CC","hi":"#D6203A"},{"key":"left","he":"מרכז-שמאל","lo":"#E6D3FA","hi":"#9333EA"},{"key":"center","he":"ממוצע ארצי","lo":"#FFF3A3","hi":"#F4F1E8"},{"key":"right","he":"מרכז-ימין","lo":"#B5D3F7","hi":"#1D6FE0"},{"key":"ultra_right","he":"ימין","lo":"#FFD9A8","hi":"#F07C00"},{"key":"haredim","he":"חרדים","lo":"#5A5A5A","hi":"#000000"}],"elections":[{"id":25,"name":"הכנסת ה-25","date":"נובמבר 2022","available":true,"share":[12.764277568207737,11.299236775155716,23.42310729011317,3.5441705412755504,35.28379682428283,5.886481270286867,7.79892973067813],"turnout":[53.45117136805976,64.29756237775082,69.03922488842764,50.15513819433009,62.32551654223542,72.63431683329269,72.66637796285386],"shown":11399,"with_votes":11707,"counts":[1455,1288,2670,404,4022,671,889],"precision":{"street":8004,"locality":3158,"venue":237}},{"id":24,"name":"הכנסת ה-24","date":"מרץ 2021","available":true,"share":[12.845362577573749,11.27263453200714,23.038340559381112,3.7660460766811186,35.679673552665136,5.63631726600357,7.761625435688175],"turnout":[44.10047005722978,66.14561516528532,68.86660088346967,49.1499737541697,58.33239554707587,71.11051037109083,69.69240808875045],"shown":11763,"with_votes":12127,"counts":[1511,1326,2710,443,4197,663,913],"precision":{"street":7808,"locality":3724,"venue":231}},{"id":23,"name":"הכנסת ה-23","date":"מרץ 2020","available":true,"share":[11.27484246243335,14.910324769752787,21.832283082888996,3.257392147358216,35.39505574406205,6.136694134755211,7.193407658749394],"turnout":[65.27456118966357,68.87460769197274,69.71461078283848,53.851343641946826,62.2331501855722,73.46873226177127,73.60109013141951],"shown":10315,"with_votes":10631,"counts":[1163,1538,2252,336,3651,633,742],"precision":{"street":6910,"locality":3195,"venue":210}},{"id":22,"name":"הכנסת ה-22","date":"ספטמבר 2019","available":true,"share":[11.061080657791699,12.754502740798747,22.49412685982772,2.9169929522317934,37.40211433046202,6.088488645262333,7.282693813625685],"turnout":[59.36106458704072,68.77149075663506,70.19854038966217,52.85429936305732,61.664048799085016,73.30258073263882,73.95983458280054],"shown":10216,"with_votes":10537,"counts":[1130,1303,2298,298,3821,622,744],"precision":{"street":6744,"locality":3265,"venue":207}},{"id":21,"name":"הכנסת ה-21","date":"אפריל 2019","available":true,"share":[10.778502272278207,11.203319502074688,24.086148982414542,3.24046631100573,37.858130804188896,5.591780280576961,7.241651847460976],"turnout":[48.9136636018974,68.50304198150995,72.0942311008619,52.25521518511558,62.05774625596324,75.04008617754307,73.11607610776586],"shown":10122,"with_votes":10460,"counts":[1091,1134,2438,328,3832,566,733],"precision":{"street":6564,"locality":3363,"venue":195}},{"id":20,"name":"הכנסת ה-20","date":"מרץ 2015","available":true,"share":[9.922372611464969,12.509952229299364,22.78065286624204,3.602707006369427,37.41042993630573,6.160429936305732,7.613455414012739],"turnout":[64.70791409887995,71.01396400915732,74.10092510668521,54.858246427191965,63.82552930207173,76.36091950553183,74.81709139429424],"shown":10048,"with_votes":10465,"counts":[997,1257,2289,362,3759,619,765],"precision":{"street":5747,"locality":4119,"venue":182}}]};
+const cats = DATA.cats, ELS = DATA.elections;
+// station row: [lat, lon, radius_m, cat, shade, valid, eligible, voted, nAgree, ballot, locality, venue, address, topParties, [3 labels], precision]
+const LAT=0, LON=1, RM=2, CAT=3, SHADE=4, VALID=5, ELIG=6, VOTED=7, NAGREE=8, BALLOT=9, LOC=10, VENUE=11, ADDR=12, TOP=13, LABELS=14, PREC=15;
+const MINPX = 2.2;   // dots never get smaller than this on screen (they may overlap only when zoomed far out)
+
+function hex2rgb(h){ h=h.replace('#',''); return [0,2,4].map(i=>parseInt(h.slice(i,i+2),16)); }
+function mix(lo, hi, t){ const a=hex2rgb(lo), b=hex2rgb(hi); return 'rgb('+a.map((v,i)=>Math.round(v+(b[i]-v)*t)).join(',')+')'; }
+function colorOf(c, t){ return mix(cats[c].lo, cats[c].hi, t); }
+const fmt = n => n.toLocaleString('he-IL');
+
+const map = L.map('map', { preferCanvas: true, minZoom: 6, maxZoom: 19 }).setView([31.85, 35.05], 9);
+const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/';
+const street = L.tileLayer(ESRI + 'World_Street_Map/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, maxNativeZoom: 17, attribution: 'Tiles © Esri' });
+const gray = L.tileLayer(ESRI + 'Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, maxNativeZoom: 16, attribution: 'Tiles © Esri' });
+const imagery = L.tileLayer(ESRI + 'World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, maxNativeZoom: 18, attribution: 'Tiles © Esri, Maxar, Earthstar Geographics' });
+const osmfr = L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', { maxZoom: 19, subdomains: 'abc', attribution: '© OpenStreetMap contributors, tiles OSM France' });
+street.addTo(map);
+L.control.layers({ 'מפה רגילה': street, 'מפה בהירה': gray, 'לוויין': imagery, 'OpenStreetMap': osmfr }, null, { position: 'topleft' }).addTo(map);
+L.control.scale({ imperial: false, position: 'bottomright' }).addTo(map);
+
+// metres per screen pixel at a latitude/zoom -> dot radius in pixels
+function px(rm, lat, z){ return Math.max(MINPX, rm / (156543.03392 * Math.cos(lat * Math.PI / 180) / Math.pow(2, z))); }
+
+// per-election data (stations + zoom layouts) is fetched when the election is first chosen
+const loading = {};
+function ensure(e){
+  if (e.stations) return Promise.resolve();
+  return loading[e.id] || (loading[e.id] = fetch('data/k' + e.id + '.json').then(r => r.json()).then(j => { e.stations = j.stations; e.layouts = j.layouts; }));
+}
+// zoom-dependent positions: from zoom 13 up the base position (row lat/lon) applies; below, a layout reserved for the
+// minimum on-screen dot size (offsets in metres from the base position, one pair per station)
+const MX = 111320 * Math.cos(31.5 * Math.PI / 180), MY = 110574;
+const layoutKey = z => z >= 13 ? null : String(Math.max(8, Math.floor(z)));
+function applyLayout(e, b, z){
+  const off = e.layouts && e.layouts[layoutKey(z)];
+  for (const m of b.markers) {
+    const s = e.stations[m._i];
+    m.setLatLng(off ? [s[LAT] + off[2 * m._i + 1] / MY, s[LON] + off[2 * m._i] / MX] : [s[LAT], s[LON]]);
+  }
+}
+
+const tip = L.tooltip({ direction: 'top', className: 'tip', offset: [0, -4] });
+const built = {};            // election id -> { groups: [layerGroup per category], markers: [] }
+const elOn = {};             // election id -> bool
+const catOn = cats.map(() => true);
+
+function popupHtml(e, s){
+  const c = cats[s[CAT]];
+  const conf = s[NAGREE] === 3 ? 'כל 3 השיטות מסכימות' : s[NAGREE] === 2 ? '2 מתוך 3 שיטות מסכימות' : 'שלוש השיטות חלוקות (נבחר האמצעי)';
+  const turn = s[ELIG] > 0 ? (100 * s[VOTED] / s[ELIG]).toFixed(1) + '% (' + fmt(s[VOTED]) + ' מתוך ' + fmt(s[ELIG]) + ')' : '—';
+  const where = s[PREC] === 'locality' ? '<br><span class="muted">מיקום משוער: מרכז היישוב (הכתובת הרשמית היא שם היישוב בלבד)</span>'
+              : s[PREC] === 'google_unverified' ? '<br><span class="muted">מיקום לא מאומת</span>' : '';
+  return '<span class="muted">' + e.name + ' · ' + e.date + '</span><br>' +
+    '<b>' + s[LOC] + '</b> · קלפי ' + s[BALLOT] + '<br>' +
+    (s[VENUE] ? s[VENUE] + '<br>' : '') + (s[ADDR] ? '<span class="muted">' + s[ADDR] + '</span>' : '') + where + '<br>' +
+    '<div class="turnout"><b>אחוז הצבעה: ' + turn + '</b></div>' +
+    '<span class="chip" style="background:' + colorOf(s[CAT], s[SHADE]) + '"></span><b>' + c.he + '</b> · ביטחון ' + Math.round(s[SHADE] * 100) + '%<br>' +
+    '<span class="muted">' + conf + ': ' + s[LABELS].join(' / ') + '</span><br>' +
+    'קולות כשרים: ' + fmt(s[VALID]) + '<br>' + s[TOP];
+}
+
+function build(e){
+  if (built[e.id]) return built[e.id];
+  const groups = cats.map(() => L.layerGroup()), markers = [], byIdx = {};
+  const z = map.getZoom();
+  // low-confidence first so confident dots are drawn on top
+  const order = e.stations.map((_, i) => i).sort((a, b) => e.stations[a][SHADE] - e.stations[b][SHADE]);
+  for (const i of order) {
+    const s = e.stations[i];
+    const m = L.circleMarker([s[LAT], s[LON]], {
+      radius: px(s[RM], s[LAT], z), stroke: true, color: '#222', weight: 0.8, opacity: 0.6,
+      fillColor: colorOf(s[CAT], s[SHADE]), fillOpacity: 0.82
+    });
+    m._rm = s[RM]; m._lat = s[LAT];
+    m.bindPopup(() => popupHtml(e, s), { maxWidth: 320, autoPanPaddingTopLeft: [70, 20], autoPanPaddingBottomRight: [340, 20] });
+    m.on('popupopen', () => m.setStyle({ weight: 2.5, opacity: 1, color: '#000' }));
+    m.on('popupclose', () => m.setStyle({ weight: 0.8, opacity: 0.6, color: '#222' }));
+    m._i = i; byIdx[i] = m;
+    m.on('mouseover', () => {
+      const t = s[ELIG] > 0 ? (100 * s[VOTED] / s[ELIG]).toFixed(0) + '%' : '—';
+      tip.setLatLng(m.getLatLng()).setContent(s[LOC] + ' · קלפי ' + s[BALLOT] + ' · הצבעה ' + t).addTo(map);
+    });
+    m.on('mouseout', () => map.removeLayer(tip));
+    groups[s[CAT]].addLayer(m);
+    markers.push(m);
+  }
+  const b = built[e.id] = { groups, markers, byIdx };
+  applyLayout(e, b, z);
+  return b;
+}
+
+function refresh(){
+  for (const e of ELS) {
+    if (!e.available) continue;
+    const want = !!elOn[e.id];
+    const b = want ? build(e) : built[e.id];
+    if (!b) continue;
+    cats.forEach((_, c) => {
+      const g = b.groups[c], on = want && catOn[c];
+      if (on && !map.hasLayer(g)) map.addLayer(g);
+      else if (!on && map.hasLayer(g)) map.removeLayer(g);
+    });
+  }
+  updateCounts(); updateLegend();
+}
+map.on('zoomend', () => {
+  const z = map.getZoom();
+  for (const id in built) {
+    built[id].markers.forEach(m => m.setRadius(px(m._rm, m._lat, z)));
+    applyLayout(ELS.find(e => e.id === +id), built[id], z);
+  }
+});
+
+// ---- one floating panel: elections + categories (legend) + notes ----
+let countEls = [], dynEl;
+function updateCounts(){
+  const on = ELS.filter(e => e.available && elOn[e.id]);
+  countEls.forEach((el, c) => {
+    const e = on[0];
+    el.querySelector('b').textContent = e ? e.share[c].toFixed(1) + '%' : '';
+    el.querySelector('i').textContent = e ? e.turnout[c].toFixed(1) + '%' : '';
+    el.parentNode.title = e ? fmt(e.counts[c]) + ' קלפיות' : '';
+  });
+}
+function updateLegend(){
+  if (!dynEl) return;
+  dynEl.innerHTML = '';
+}
+const catBoxes = [];
+const Filter = L.Control.extend({
+  options: { position: 'topright' },
+  onAdd() {
+    const div = L.DomUtil.create('div', 'panel filter');
+    div.innerHTML = '<h4>בחירות</h4>' + ELS.map(e =>
+      '<label class="' + (e.available ? '' : 'off') + '"><input type="radio" name="election" data-e="' + e.id + '"' + (e.available ? '' : ' disabled') + '>' +
+      '<span>' + e.name + ' · ' + e.date + '</span>' + (e.available ? '' : '<span class="soon">בקרוב</span>') + '</label>').join('') +
+      '<hr><h4>קבוצות (מקרא)</h4><div class="hint">גוון בהיר = ודאות נמוכה · גוון כהה = ודאות גבוהה</div>' +
+      '<div class="cols"><div style="margin-inline-start:auto;display:flex;gap:2px"><span title="חלקה של הקבוצה בכלל הקלפיות">% קלפיות</span><span title="אחוז ההצבעה הממוצע בפועל (מצביעים מתוך בעלי זכות בחירה) בקלפיות הקבוצה">% הצבעה</span></div></div>' + cats.map((c, i) =>
+      '<label><input type="checkbox" data-c="' + i + '" checked>' +
+      '<span class="swatch" style="background:linear-gradient(to left,' + c.hi + ',' + c.lo + ')"></span>' +
+      '<span>' + c.he + '</span><span class="n"><b></b><i></i></span></label>').join('') +
+      '<div class="btns"><button data-all="1">הכל</button><button data-all="0">נקה</button></div>' +
+      '<div class="note">גודל כל עיגול פרופורציוני למספר המצביעים בפועל.<span class="dyn"></span>' +
+      '<div class="fine">הקבוצות הן הערכה סטטיסטית מתוך תוצאות הקלפיות; מיקום וגודל העיגולים משוערים. נתוני בחירות: ועדת הבחירות המרכזית. מיקומים וקו החוף: © תורמי OpenStreetMap.</div></div>';
+    L.DomEvent.disableClickPropagation(div);
+    L.DomEvent.disableScrollPropagation(div);
+    countEls = [...div.querySelectorAll('.n')];
+    dynEl = div.querySelector('.dyn');
+    const first = ELS.find(e => e.available);
+    div.querySelectorAll('input[data-e]').forEach(b => {
+      const id = +b.dataset.e;
+      elOn[id] = first && first.id === id;
+      b.checked = !!elOn[id];
+      b.addEventListener('change', () => {   // one election at a time (radio)
+        if (!b.checked) return;
+        map.closePopup();
+        document.body.style.cursor = 'progress';
+        ensure(ELS.find(x => x.id === id)).then(() => {
+          ELS.forEach(x => { elOn[x.id] = x.id === id; });
+          refresh();
+          document.body.style.cursor = '';
+          const q = document.querySelector('.search input');
+          if (q && q.value.trim()) q.dispatchEvent(new Event('input'));
+        });
+      });
+    });
+    div.querySelectorAll('input[data-c]').forEach(b => {
+      catBoxes[+b.dataset.c] = b;
+      b.addEventListener('change', () => { catOn[+b.dataset.c] = b.checked; refresh(); });
+    });
+    div.querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => {
+      catBoxes.forEach((b, c) => { b.checked = btn.dataset.all === '1'; catOn[c] = b.checked; });
+      refresh();
+    }));
+    return div;
+  }
+});
+
+// ---- search by town (results listed by station) ----
+const normQ = t => String(t).replace(/קריית/g, 'קרית').replace(/[\s"'״׳\-–־.,()]+/g, '').toLowerCase();
+const index = {};   // election id -> [{i, loc, ven, adr}]
+function searchIndex(e){
+  return index[e.id] || (index[e.id] = e.stations.map((s, i) => ({ i, loc: normQ(s[LOC]), rest: normQ(s[VENUE] + ' ' + s[ADDR]) })));
+}
+function runSearch(q){
+  q = normQ(q);
+  if (!q) return [];
+  const out = [];
+  for (const e of ELS.filter(e => e.available && elOn[e.id])) {
+    for (const r of searchIndex(e)) {
+      const rank = r.loc.startsWith(q) ? 0 : r.loc.includes(q) ? 1 : r.rest.includes(q) ? 2 : 9;
+      if (rank < 9) out.push({ e, i: r.i, rank, s: e.stations[r.i] });
+    }
+  }
+  out.sort((a, b) => a.rank - b.rank || a.s[LOC].localeCompare(b.s[LOC], 'he') || parseFloat(a.s[BALLOT]) - parseFloat(b.s[BALLOT]));
+  return out;
+}
+function goTo(hit){
+  const { e, i, s } = hit;
+  if (!catOn[s[CAT]]) { catOn[s[CAT]] = true; catBoxes[s[CAT]].checked = true; refresh(); }
+  const m = build(e).byIdx[i];
+  const z = Math.round(Math.max(12, Math.min(18, 17 - Math.log2(Math.max(1, s[RM] / 80)))));
+  map.once('moveend', () => m.openPopup());
+  map.flyTo([s[LAT], s[LON]], z, { duration: 0.8 });
+}
+const Search = L.Control.extend({
+  options: { position: 'topright' },
+  onAdd() {
+    const div = L.DomUtil.create('div', 'panel search');
+    div.innerHTML = '<input type="search" placeholder="חיפוש יישוב (או רחוב/מקום)…" autocomplete="off"><div class="results" hidden></div>';
+    L.DomEvent.disableClickPropagation(div);
+    L.DomEvent.disableScrollPropagation(div);
+    const input = div.querySelector('input'), box = div.querySelector('.results');
+    let hits = [], act = -1, timer;
+    const close = () => { box.hidden = true; act = -1; };
+    function render(){
+      if (!hits.length) { box.innerHTML = '<div class="head">לא נמצאו קלפיות</div>'; box.hidden = !input.value.trim(); return; }
+      const multi = ELS.filter(e => e.available && elOn[e.id]).length > 1;
+      const shown = hits.slice(0, 300);
+      box.innerHTML = '<div class="head">' + fmt(hits.length) + ' קלפיות' + (hits.length > shown.length ? ' (מוצגות ' + shown.length + ' הראשונות)' : '') + '</div>' +
+        shown.map((h, k) => '<div class="it" data-k="' + k + '"><span class="chip" style="background:' + colorOf(h.s[CAT], h.s[SHADE]) + '"></span><b>' + h.s[LOC] + '</b> · קלפי ' + h.s[BALLOT] +
+          (multi ? ' · ' + h.e.name : '') + '<small>' + [h.s[VENUE], h.s[ADDR]].filter(Boolean).join(' · ') + '</small></div>').join('');
+      box.hidden = false;
+    }
+    input.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(() => { hits = runSearch(input.value); act = -1; render(); }, 120); });
+    input.addEventListener('focus', () => { if (input.value.trim()) { hits = runSearch(input.value); render(); } });
+    input.addEventListener('keydown', ev => {
+      const items = [...box.querySelectorAll('.it')];
+      if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
+        ev.preventDefault();
+        act = Math.max(0, Math.min(items.length - 1, act + (ev.key === 'ArrowDown' ? 1 : -1)));
+        items.forEach((it, k) => it.classList.toggle('act', k === act));
+        if (items[act]) items[act].scrollIntoView({ block: 'nearest' });
+      } else if (ev.key === 'Enter') {
+        const k = act >= 0 ? act : 0;
+        if (hits[k]) { goTo(hits[k]); close(); }
+      } else if (ev.key === 'Escape') { close(); input.blur(); }
+    });
+    box.addEventListener('click', ev => {
+      const it = ev.target.closest('.it');
+      if (it) { goTo(hits[+it.dataset.k]); close(); }
+    });
+    map.on('click', close);
+    return div;
+  }
+});
+map.addControl(new Search());
+map.addControl(new Filter());
+ensure(ELS.find(e => e.available)).then(refresh);
+</script>
+</body>
+</html>
