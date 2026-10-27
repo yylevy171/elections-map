@@ -156,17 +156,18 @@ onmessage = ev => {
   }
   postMessage({ id, x, y }, [x.buffer, y.buffer]);
 };`;
-let worker = null; const jobs = {}; let jobSeq = 0;
-function getWorker(){
-  if (!worker) {
-    worker = new Worker(URL.createObjectURL(new Blob([WORKER_SRC], { type: 'text/javascript' })));
-    worker.onmessage = ev => { const j = jobs[ev.data.id]; delete jobs[ev.data.id]; if (j) j(ev.data); };
+const workers = {}; const jobs = {}; let jobSeq = 0;
+function getWorker(kind){
+  if (!workers[kind]) {
+    const w = new Worker(URL.createObjectURL(new Blob([WORKER_SRC], { type: 'text/javascript' })));
+    w.onmessage = ev => { const j = jobs[ev.data.id]; delete jobs[ev.data.id]; if (j) j(ev.data); };
+    workers[kind] = w;
   }
-  return worker;
+  return workers[kind];
 }
-const layoutCache = {};        // 'electionId:zoom' -> { x, y } in metres (local frame), whole election; used for zoom <= 12
+function dropWorker(kind){ if (workers[kind]) { workers[kind].terminate(); delete workers[kind]; } }   // abandons a stale whole-election job
+const layoutCache = {};        // 'electionId:zoom' -> { x, y } metres (local frame) for the whole election; never recomputed on pan
 const zoomKey = z => Math.max(6, Math.min(18, Math.floor(z)));
-// zoom 13 and up: only the dots in view plus a margin are laid out (a few hundred, so it is quick); dots outside are not visible
 function layoutFor(e, z, idx){
   const k = e.id + ':' + z;
   if (!idx && layoutCache[k]) return Promise.resolve(layoutCache[k]);
@@ -179,30 +180,36 @@ function layoutFor(e, z, idx){
   }
   return new Promise(res => {
     const id = ++jobSeq;
-    jobs[id] = out => res(idx ? { x: out.x, y: out.y } : (layoutCache[k] = { x: out.x, y: out.y }));
-    getWorker().postMessage({ id, x0, y0, r, iters: idx ? 150 : 110 });
+    jobs[id] = out => res({ x: out.x, y: out.y });
+    getWorker(idx ? 'view' : 'all').postMessage({ id, x0, y0, r, iters: idx ? 150 : 110 });
   });
 }
+function place(e, b, L_, idx, skip){        // move markers; idx = subset the arrays refer to (null: all); skip = set of indices to leave alone
+  const n = idx ? idx.length : e.stations.length;
+  for (let q = 0; q < n; q++) {
+    const i = idx ? idx[q] : q;
+    if (skip && skip.has(i)) continue;
+    b.byIdx[i].setLatLng([L_.y[q] / MY + 31.5, L_.x[q] / MX + 35]);
+  }
+}
+// One layout per (election, zoom). The dots in view are laid out first (quick), the rest of the election right after;
+// panning never changes anything, only a new zoom does.
 let layoutSeq = 0;
 function updateLayout(e, b){
-  const z = zoomKey(map.getZoom()), seq = ++layoutSeq;
-  let idx = null;
-  if (z >= 13) {
-    const bd = map.getBounds().pad(0.6);
-    idx = [];
-    e.stations.forEach((s, i) => { if (bd.contains([s[LAT], s[LON]])) idx.push(i); });
-  }
-  layoutFor(e, z, idx).then(L_ => {
-    if (seq !== layoutSeq) return;                     // superseded by a newer zoom or pan
-    const n = idx ? idx.length : e.stations.length;
-    for (let q = 0; q < n; q++) b.byIdx[idx ? idx[q] : q].setLatLng([L_.y[q] / MY + 31.5, L_.x[q] / MX + 35]);
+  const z = zoomKey(map.getZoom()), seq = ++layoutSeq, key = e.id + ':' + z;
+  if (layoutCache[key]) { place(e, b, layoutCache[key], null); return; }
+  dropWorker('all');
+  const finishAll = (idx, sub) => layoutFor(e, z, null).then(full => {
+    if (idx) idx.forEach((i, q) => { full.x[i] = sub.x[q]; full.y[i] = sub.y[q]; });   // keep what the user already sees
+    layoutCache[key] = full;
+    if (seq === layoutSeq) place(e, b, full, null, idx ? new Set(idx) : null);
   });
+  if (z >= 13) {
+    const bd = map.getBounds().pad(0.6), idx = [];
+    e.stations.forEach((s, i) => { if (bd.contains([s[LAT], s[LON]])) idx.push(i); });
+    layoutFor(e, z, idx).then(sub => { if (seq === layoutSeq) place(e, b, sub, idx); finishAll(idx, sub); });
+  } else finishAll(null, null);
 }
-let moveTimer;
-map.on('moveend', () => {                              // zoom changes end in a moveend too
-  clearTimeout(moveTimer);
-  moveTimer = setTimeout(() => ELS.forEach(e => { if (built[e.id] && elOn[e.id]) updateLayout(e, built[e.id]); }), 120);
-});
 
 const tip = L.tooltip({ direction: 'top', className: 'tip', offset: [0, -4] });
 const built = {};            // election id -> { groups: [layerGroup per category], markers: [] }
@@ -270,6 +277,8 @@ map.on('zoomend', () => {
   const z = map.getZoom();
   for (const id in built) {
     built[id].markers.forEach(m => m.setRadius(px(m._rm, m._lat, z)));
+    const e = ELS.find(x => x.id === +id);
+    if (elOn[e.id]) updateLayout(e, built[id]);
   }
 });
 
