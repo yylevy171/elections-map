@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>בחירות 2026 - תחזית</title>
+<style>
+  :root { --bg: #f6f7f9; --card: #fff; --fg: #1f2328; --muted: #5d646c; --faint: #9aa1a8; --line: #e3e6ea; --ctl: #f3f5f7; --ctl-line: #b9c0c7;
+          --coal: #2f5fa8; --opp: #d08a1e; --arab: #2fad5a; --out: #b8bec5; --mark: #c0392b; --range: rgba(31,35,40,.18); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #1b1f24; --card: #262b32; --fg: #e8eaed; --muted: #a3abb4; --faint: #6b737c;
+          --line: #3a4048; --ctl: #323840; --ctl-line: #555e68; --coal: #6d9be0; --opp: #e6a64a; --arab: #4cc777; --out: #5a626b; --mark: #ef6f5e; --range: rgba(232,234,237,.2); color-scheme: dark } }
+  :root[data-theme="dark"] { --bg: #1b1f24; --card: #262b32; --fg: #e8eaed; --muted: #a3abb4; --faint: #6b737c;
+          --line: #3a4048; --ctl: #323840; --ctl-line: #555e68; --coal: #6d9be0; --opp: #e6a64a; --arab: #4cc777; --out: #5a626b; --mark: #ef6f5e; --range: rgba(232,234,237,.2); color-scheme: dark }
+  html, body { margin: 0; background: var(--bg); color: var(--fg); font-family: system-ui, "Segoe UI", Arial, sans-serif; font-size: 15px; }
+  main { max-width: 860px; margin: 0 auto; padding-block: 20px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+         display: flex; flex-direction: column; gap: 16px; }
+  header { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  h1 { font-size: 22px; margin: 0; text-wrap: balance; }
+  h2 { font-size: 15px; margin: 0 0 10px; }
+  a { color: var(--coal); }
+  .nav { margin-inline-start: auto; font-size: 14px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; min-width: 0; }
+  .status { display: flex; flex-wrap: wrap; gap: 6px 22px; align-items: baseline; }
+  .status .big { font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .status .lbl { font-size: 12px; color: var(--muted); display: block; }
+  .snap { margin-inline-start: auto; font-size: 13px; }
+  .snap select { font: inherit; padding: 3px 6px; background: var(--ctl); color: var(--fg); border: 1px solid var(--ctl-line); border-radius: 5px; }
+  .progress { height: 6px; background: var(--ctl); border-radius: 3px; overflow: hidden; margin-top: 10px; }
+  .progress i { display: block; height: 100%; background: var(--fg); opacity: .55; }
+  /* seat strip */
+  .strip { position: relative; display: flex; height: 34px; border-radius: 6px; overflow: hidden; direction: rtl; }
+  .strip span { display: flex; align-items: center; justify-content: center; color: #fff; font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden;
+                border-inline-start: 1px solid var(--card); }
+  .strip .mid { position: absolute; top: -4px; bottom: -4px; right: calc(61 / 120 * 100%); width: 2px; background: var(--mark); }
+  .blocs { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 10px; font-size: 14px; }
+  .blocs b { font-variant-numeric: tabular-nums; }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-inline-end: 5px; vertical-align: -1px; }
+  /* table */
+  .tbl { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 14px; }
+  th { font-size: 11.5px; font-weight: 500; color: var(--muted); text-align: start; padding: 4px 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  td { padding: 7px 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  td.num, th.num { text-align: center; }
+  tr.below td { color: var(--faint); }
+  .let { font-size: 11px; color: var(--muted); margin-inline-start: 4px; }
+  .seats { font-weight: 700; font-size: 16px; }
+  .rng { font-size: 11.5px; color: var(--muted); }
+  .bar { position: relative; width: 220px; height: 14px; }
+  .bar .r { position: absolute; top: 3px; height: 8px; background: var(--range); border-radius: 2px; }
+  .bar .v { position: absolute; top: 0; height: 14px; width: 3px; border-radius: 1px; }
+  .bar .c { position: absolute; top: 2px; height: 10px; width: 2px; background: var(--faint); }
+  .bar .th { position: absolute; top: -3px; bottom: -3px; width: 1px; background: var(--mark); opacity: .7; }
+  .delta { font-size: 12px; }
+  .up { color: var(--arab); } .dn { color: var(--mark); }
+  .tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .tile { background: var(--card); border: 1px solid var(--line); border-top: 5px solid var(--c); border-radius: 10px; padding: 12px 14px; min-width: 0; }
+  .tile h3 { margin: 0; font-size: 15px; }
+  .tile .who { font-size: 11.5px; color: var(--muted); margin: 2px 0 8px; line-height: 1.35; }
+  .tile .s { font-size: 40px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; color: var(--c); }
+  .tile .s small { font-size: 14px; font-weight: 500; color: var(--muted); margin-inline-start: 4px; }
+  .tile .kv { display: flex; flex-wrap: wrap; gap: 2px 14px; font-size: 13px; margin-top: 8px; font-variant-numeric: tabular-nums; }
+  .tile .kv span { color: var(--muted); } .tile .kv b { color: var(--fg); font-weight: 600; }
+  .tile .gap { font-size: 12.5px; margin-top: 6px; }
+  @media (max-width: 640px) { .tiles { grid-template-columns: 1fr; } .tile .s { font-size: 32px; } }
+  .legend { font-size: 12px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 8px; }
+  .scen { display: grid; gap: 8px; }
+  .scen div { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 14px; align-items: baseline; }
+  .scen div > span:first-child { min-width: 210px; color: var(--muted); }
+  .note { font-size: 12.5px; color: var(--muted); line-height: 1.55; max-width: 70ch; }
+  .note p { margin: 0 0 6px; }
+  @media (max-width: 560px) { .bar { width: 90px; } .hide-sm { display: none; } .status .big { font-size: 21px; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>תחזית תוצאות הכנסת ה-26</h1>
+    <span class="nav"><a href="index.html">← מפת הקלפיות</a></span>
+  </header>
+
+  <section class="card">
+    <div class="status">
+      <div><span class="lbl">עדכון</span><span class="big" id="when">–</span></div>
+      <div><span class="lbl">קולות כשרים שנספרו</span><span class="big" id="counted">–</span></div>
+      <div><span class="lbl">מתוך הצפי לסך הקולות</span><span class="big" id="pct">–</span></div>
+      <label class="snap">עדכון: <select id="snap"></select></label>
+    </div>
+    <div class="progress"><i id="prog"></i></div>
+    <div class="legend" id="sub"></div>
+  </section>
+
+  <section class="tiles" id="tiles"></section>
+
+  <section class="card">
+    <h2>מנדטים צפויים (באדר-עופר, עם הסכמי עודפים)</h2>
+    <div class="strip" id="strip"><i class="mid" title="61"></i></div>
+    <div class="blocs" id="blocs"></div>
+  </section>
+
+  <section class="card">
+    <h2>תחזית לפי רשימה</h2>
+    <div class="tbl"><table>
+      <thead><tr><th>רשימה</th><th class="num">נספר</th><th class="num">תחזית</th><th class="hide-sm">טווח 90%</th><th class="num">מנדטים</th><th class="num">שינוי</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table></div>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--range)"></i>טווח 90% (דגימה מחדש של יישובים)</span>
+      <span><i class="dot" style="background:var(--faint);width:2px"></i>אחוז בספירה עד כה</span>
+      <span><i class="dot" style="background:var(--mark);width:1px"></i>אחוז החסימה 3.25%</span>
+      <span>"שינוי" = מנדטים לעומת העדכון הקודם</span>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>תרחישי שיעור הצבעה בחברה הערבית</h2>
+    <div class="scen" id="scen"></div>
+  </section>
+
+  <section class="card note">
+    <p><b>זו הערכה סטטיסטית, לא תוצאה.</b> כל קלפי שטרם נספרה מוערכת לפי התוצאה שלה ב-2022, ובהתאם למעבר הקולות בין המפלגות שנמדד בקלפיות שכבר נספרו. בנוסף נלקחים בחשבון תיקון לפי סוג הקלפי (7 קטגוריות), תיקון לפי יישוב ושינוי בשיעור ההצבעה.</p>
+    <p>המעטפות הכפולות (כ-9.6% מהקולות ב-2022) עוד לא נספרו. הן מוערכות לפי 2022 ולפי השינוי הממוצע. הטווח משקף רק את אי-הוודאות הנובעת מהדגימה, והשגיאה בפועל גדולה ממנו, בייחוד ברשימות הערביות והחרדיות כל עוד יישוביהן לא נספרו.</p>
+    <p>המקור: קבצי התוצאות של ועדת הבחירות המרכזית לפי קלפי. שעת העדכון היא השעה שבה הגיע הקובץ.</p>
+  </section>
+</main>
+<script>
+const BLOC_HE = { coalition: "גוש נתניהו", opposition: "גוש איזנקוט", arab: "רשימות ערביות" };
+const BLOC_SUB = { coalition: "ליכוד, ש״ס, יהדות התורה, עוצמה יהודית, הציונות הדתית", opposition: "ישר!, ביחד, ישראל ביתנו, הדמוקרטים, המילואימניקים, כחול לבן", arab: "הרשימה המשותפת, רע״ם" };
+const BLOC_VAR = { coalition: "--coal", opposition: "--opp", arab: "--arab" };
+const fmt = n => n.toLocaleString("he-IL");
+let J, blocOf = {};
+const col = p => `var(${BLOC_VAR[blocOf[p]] || "--out"})`;
+
+function when(iso) {
+  if (!iso) return "–";
+  const d = new Date(iso);
+  return d.toLocaleString("he-IL", { timeZone: "Asia/Jerusalem", day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+function render(i) {
+  const e = J.snapshots[i], prev = J.snapshots[i - 1];
+  document.getElementById("when").textContent = when(e.received);
+  document.getElementById("counted").textContent = fmt(e.counted);
+  document.getElementById("pct").textContent = e.counted_pct.toFixed(1) + "%";
+  document.getElementById("prog").style.width = e.counted_pct + "%";
+  document.getElementById("sub").textContent = `${fmt(e.stations)} קלפיות נספרו · צפי לסך הקולות הכשרים: ${fmt(e.projected_total)} (כולל מעטפות כפולות)`;
+
+  const sum = (k, f) => J.blocs[k].reduce((a, l) => a + (f(e.parties.find(p => p.letters === l)) || 0), 0);
+  const sumPrev = k => prev ? J.blocs[k].reduce((a, l) => a + ((prev.parties.find(p => p.letters === l) || {}).seats || 0), 0) : null;
+  document.getElementById("tiles").innerHTML = ["coalition", "opposition", "arab"].map(k => {
+    const seats = e.blocs[k], sc = e.scenarios.map(s => s.blocs[k]);
+    const lo = Math.min(...sc), hi = Math.max(...sc), pv = sumPrev(k), d = pv === null ? 0 : seats - pv;
+    const gap = k === "arab" ? "" : `<div class="gap">${seats >= 61 ? `<b class="up">רוב: ${seats - 60} מעל 60</b>` : `חסרים <b>${61 - seats}</b> לרוב של 61`}</div>`;
+    return `<div class="tile" style="--c:var(${BLOC_VAR[k]})"><h3>${BLOC_HE[k]}</h3><div class="who">${BLOC_SUB[k]}</div>
+      <div class="s">${seats}<small>מנדטים</small></div>
+      <div class="kv"><span>תחזית קולות <b>${sum(k, p => p && p.proj).toFixed(1)}%</b></span><span>נספר <b>${sum(k, p => p && p.counted).toFixed(1)}%</b></span>
+      <span>בתרחישים <b>${lo === hi ? lo : lo + "–" + hi}</b></span>${pv === null ? "" : `<span>שינוי <b class="${d > 0 ? "up" : d < 0 ? "dn" : ""}">${d > 0 ? "+" : ""}${d}</b></span>`}</div>${gap}</div>`;
+  }).join("");
+
+  const ps = e.parties.filter(p => p.seats > 0);
+  const order = ["coalition", "opposition", "arab"];
+  ps.sort((a, b) => order.indexOf(blocOf[a.letters]) - order.indexOf(blocOf[b.letters]) || b.seats - a.seats);
+  const strip = document.getElementById("strip");
+  strip.querySelectorAll("span").forEach(s => s.remove());
+  ps.forEach(p => {
+    const s = document.createElement("span");
+    s.style.width = (p.seats / 120 * 100) + "%";
+    s.style.background = col(p.letters);
+    s.title = `${p.name}: ${p.seats}`;
+    s.textContent = p.seats >= 5 ? p.seats : "";
+    strip.insertBefore(s, strip.querySelector(".mid"));
+  });
+  document.getElementById("blocs").innerHTML = order.map(k =>
+    `<span><i class="dot" style="background:var(${BLOC_VAR[k]})"></i>${BLOC_HE[k]}: <b>${e.blocs[k]}</b></span>`).join("") +
+    `<span style="color:var(--muted)">קו אדום = 61</span>`;
+
+  const max = Math.max(...e.parties.map(p => p.hi), 25);
+  const x = v => (v / max * 100);
+  const pm = prev ? Object.fromEntries(prev.parties.map(p => [p.letters, p.seats])) : {};
+  document.getElementById("rows").innerHTML = e.parties.filter(p => p.proj >= 0.3 || p.counted >= 0.3).map(p => {
+    const d = prev ? p.seats - (pm[p.letters] || 0) : 0;
+    const dl = !prev || d === 0 ? `<span class="rng">–</span>` : `<span class="delta ${d > 0 ? "up" : "dn"}">${d > 0 ? "+" : ""}${d}</span>`;
+    return `<tr class="${p.seats ? "" : "below"}">
+      <td>${p.name}<span class="let">${p.letters === "other" ? "" : p.letters}</span></td>
+      <td class="num">${p.counted.toFixed(1)}%</td>
+      <td class="num"><b>${p.proj.toFixed(1)}%</b></td>
+      <td class="hide-sm"><div class="bar">
+        <i class="r" style="right:${x(p.lo)}%;width:${Math.max(x(p.hi) - x(p.lo), .8)}%"></i>
+        <i class="th" style="right:${x(3.25)}%"></i>
+        <i class="c" style="right:${x(p.counted)}%"></i>
+        <i class="v" style="right:calc(${x(p.proj)}% - 1px);background:${col(p.letters)}"></i></div>
+        <span class="rng">${p.lo.toFixed(1)}–${p.hi.toFixed(1)}%</span></td>
+      <td class="num"><span class="seats">${p.seats}</span>${p.seats || p.shi ? `<div class="rng">${p.slo}–${p.shi}</div>` : ""}</td>
+      <td class="num">${dl}</td></tr>`;
+  }).join("");
+
+  const SCEN_HE = { "model (shrunk shift)": "המודל (שינוי מכווץ לממוצע)", "Arab turnout = national shift": "שינוי כמו הממוצע הארצי", "Arab turnout flat vs 2022": "ללא שינוי לעומת 2022" };
+  document.getElementById("scen").innerHTML = e.scenarios.map(s =>
+    `<div><span>${SCEN_HE[s.name] || s.name}</span>` + order.map(k => `<span><i class="dot" style="background:var(${BLOC_VAR[k]})"></i><b>${s.blocs[k]}</b></span>`).join("") +
+    `<span class="rng">רשימות ערביות: ${(s.seats["ודם"] || 0)} + ${(s.seats["עם"] || 0)}</span></div>`).join("");
+}
+
+fetch("data/nowcast.json", { cache: "no-store" }).then(r => r.json()).then(j => {
+  J = j;
+  for (const [k, v] of Object.entries(j.blocs)) v.forEach(p => blocOf[p] = k);
+  const sel = document.getElementById("snap");
+  sel.innerHTML = j.snapshots.map((e, i) => `<option value="${i}">${when(e.received)} · ${e.counted_pct.toFixed(0)}%</option>`).join("");
+  sel.value = j.snapshots.length - 1;
+  sel.onchange = () => render(+sel.value);
+  render(j.snapshots.length - 1);
+});
+</script>
+</body>
+</html>

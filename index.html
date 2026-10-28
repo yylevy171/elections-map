@@ -20,6 +20,7 @@
   .filter { position: relative; }
   .fold { position: absolute; top: 6px; left: 8px; width: 34px; height: 30px; border: 0; border-radius: 6px; background: transparent; color: var(--fg);
           font-size: 22px; line-height: 1; letter-spacing: 1px; cursor: pointer; padding: 0; }
+  .tonow { display: block; margin: 2px 0 8px; padding-inline-end: 36px; font-size: 13px; font-weight: 600; color: var(--fg); }
   .fold:hover, .fold:focus-visible { background: var(--ctl); }
   .filter.collapsed { width: auto; padding: 4px; }
   .filter.collapsed > :not(.fold) { display: none; }
@@ -308,7 +309,7 @@ const Filter = L.Control.extend({
   options: { position: 'topright' },
   onAdd() {
     const div = L.DomUtil.create('div', 'panel filter');
-    div.innerHTML = '<button class="fold" type="button" aria-label="הצג או הסתר את המקרא" title="הצג/הסתר מקרא">⋯</button><h4>בחירות</h4>' + ELS.map(e =>
+    div.innerHTML = '<button class="fold" type="button" aria-label="הצג או הסתר את המקרא" title="הצג/הסתר מקרא">⋯</button><a class="tonow" href="results.html">תחזית 2026 (ספירה חיה) ←</a><h4>בחירות</h4>' + ELS.map(e =>
       '<label class="' + (e.available ? '' : 'off') + '"><input type="radio" name="election" data-e="' + e.id + '"' + (e.available ? '' : ' disabled') + '>' +
       '<span>' + e.name + ' · ' + e.date + '</span>' + (e.available ? '' : '<span class="soon">בקרוב</span>') + '</label>').join('') +
       '<hr><h4>קבוצות (מקרא)</h4><div class="hint">גוון בהיר = ודאות נמוכה · גוון כהה = ודאות גבוהה</div>' +
