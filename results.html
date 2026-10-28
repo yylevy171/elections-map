@@ -66,6 +66,17 @@
   .scen { display: grid; gap: 8px; }
   .scen div { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 14px; align-items: baseline; }
   .scen div > span:first-child { min-width: 210px; color: var(--muted); }
+  #hist svg { display: block; width: 100%; height: auto; overflow: visible; direction: ltr; }
+  #hist text { font-size: 11px; fill: var(--muted); font-variant-numeric: tabular-nums; }
+  #hist .grid { stroke: var(--line); }
+  #hist .m61 { stroke: var(--mark); stroke-dasharray: 4 3; }
+  #hist .pt { cursor: pointer; }
+  #hist .cur { stroke: var(--fg); stroke-width: 1; opacity: .35; }
+  details.all { margin-top: 8px; font-size: 13px; }
+  details.all summary { cursor: pointer; color: var(--muted); }
+  details.all table { margin-top: 6px; }
+  details.all td, details.all th { padding: 4px 6px; text-align: center; }
+  details.all td:first-child, details.all th:first-child { text-align: start; }
   .note { font-size: 12.5px; color: var(--muted); line-height: 1.55; max-width: 70ch; }
   .note p { margin: 0 0 6px; }
   @media (max-width: 560px) { .bar { width: 90px; } .hide-sm { display: none; } .status .big { font-size: 21px; } }
@@ -81,8 +92,8 @@
   <section class="card">
     <div class="status">
       <div><span class="lbl">עדכון</span><span class="big" id="when">–</span></div>
+      <div><span class="lbl">בעלי זכות בחירה בקלפיות שנספרו</span><span class="big" id="pct">–</span></div>
       <div><span class="lbl">קולות כשרים שנספרו</span><span class="big" id="counted">–</span></div>
-      <div><span class="lbl">מתוך הצפי לסך הקולות</span><span class="big" id="pct">–</span></div>
       <label class="snap">עדכון: <select id="snap"></select></label>
     </div>
     <div class="progress"><i id="prog"></i></div>
@@ -116,9 +127,17 @@
     <div class="scen" id="scen"></div>
   </section>
 
+  <section class="card">
+    <h2>כל העדכונים</h2>
+    <div id="hist"></div>
+    <div class="legend"><span>מנדטים לכל גוש בכל עדכון (שעה ואחוז בעלי זכות הבחירה שנספרו) · לחיצה על נקודה מציגה את העדכון</span><span>תחזית יציבה = קווים שטוחים; מגמה עקבית = הנחה שגויה</span></div>
+    <details class="all"><summary>טבלת מנדטים לכל העדכונים</summary><div class="tbl" id="histTbl"></div></details>
+  </section>
+
   <section class="card note">
     <p><b>זו הערכה סטטיסטית, לא תוצאה.</b> כל קלפי שטרם נספרה מוערכת לפי התוצאה שלה ב-2022, ובהתאם למעבר הקולות בין המפלגות שנמדד בקלפיות שכבר נספרו. בנוסף נלקחים בחשבון תיקון לפי סוג הקלפי (7 קטגוריות), תיקון לפי יישוב ושינוי בשיעור ההצבעה.</p>
     <p>המעטפות הכפולות (כ-9.6% מהקולות ב-2022) עוד לא נספרו. הן מוערכות לפי 2022 ולפי השינוי הממוצע. הטווח משקף רק את אי-הוודאות הנובעת מהדגימה, והשגיאה בפועל גדולה ממנו, בייחוד ברשימות הערביות והחרדיות כל עוד יישוביהן לא נספרו.</p>
+    <p>מודל v2: שכבה אזורית (קטגוריה × ועדת בחירות אזורית), וסך בעלי זכות הבחירה קבוע לפי נתון הוועדה (7,331,981). הפרמטרים נבחרו בבדיקה על סדר הספירה האמיתי: תחזית מעדכון מוקדם נבחנה מול קלפיות שנספרו מאוחר יותר. התחזיות שפורסמו קודם (v1) נשמרו כפי שהיו בקובץ data/nowcast_v1.json.</p>
     <p>המקור: קבצי התוצאות של ועדת הבחירות המרכזית לפי קלפי. שעת העדכון היא שעת הפרסום של הקובץ באתר הוועדה (בעדכונים הראשונים, שהועברו ידנית: השעה שבה הגיע הקובץ).</p>
   </section>
 </main>
@@ -141,8 +160,10 @@ function render(i) {
   document.getElementById("when").textContent = when(e.published || e.received);
   document.getElementById("counted").textContent = fmt(e.counted);
   document.getElementById("pct").textContent = e.counted_pct.toFixed(1) + "%";
+  document.getElementById("pct").title = `${fmt(e.counted_elig)} מתוך ${fmt(e.total_elig)}`;
   document.getElementById("prog").style.width = e.counted_pct + "%";
-  document.getElementById("sub").textContent = `${fmt(e.stations)} קלפיות נספרו · צפי לסך הקולות הכשרים: ${fmt(e.projected_total)} (כולל מעטפות כפולות)`;
+  document.getElementById("sub").textContent = `${fmt(e.counted_elig)} מתוך ${fmt(e.total_elig)} בעלי זכות בחירה (נתון ועדת הבחירות) · ${fmt(e.stations)} קלפיות · צפי לסך הקולות הכשרים: ${fmt(e.projected_total)}, כולל המעטפות הכפולות`;
+  drawHistory(i);
 
   const sum = (k, f) => J.blocs[k].reduce((a, l) => a + (f(e.parties.find(p => p.letters === l)) || 0), 0);
   const sumPrev = k => prev ? J.blocs[k].reduce((a, l) => a + ((prev.parties.find(p => p.letters === l) || {}).seats || 0), 0) : null;
@@ -199,7 +220,29 @@ function render(i) {
     `<span class="rng">רשימות ערביות: ${(s.seats["ודם"] || 0)} + ${(s.seats["עם"] || 0)}</span></div>`).join("");
 }
 
-fetch("data/nowcast.json", { cache: "no-store" }).then(r => r.json()).then(j => {
+function drawHistory(cur) {
+  const S = J.snapshots, h = document.getElementById("hist"), W = Math.max(320, h.clientWidth || 800), H = 220, L = 46, R = 56, T = 12, B = 34, ymin = 10, ymax = 66;
+  // one slot per update, right-to-left (RTL page): the latest update is leftmost
+  const n = S.length, X = i => n === 1 ? W / 2 : W - R - i / (n - 1) * (W - L - R), Y = v => T + (ymax - v) / (ymax - ymin) * (H - T - B);
+  let g = "";
+  for (let v = 20; v <= 50; v += 10) g += `<line class="grid" x1="${L - 30}" x2="${W - R + 20}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${W - R + 26}" y="${Y(v) + 4}" text-anchor="start">${v}</text>`;
+  S.forEach((e, i) => g += `<text x="${X(i)}" y="${H - 18}" text-anchor="middle">${when(e.published || e.received).split(" ").pop()}</text><text x="${X(i)}" y="${H - 4}" text-anchor="middle">${e.counted_pct}%</text>`);
+  g += `<line class="m61" x1="${L - 30}" x2="${W - R + 20}" y1="${Y(61)}" y2="${Y(61)}"/><text x="${W - R + 26}" y="${Y(61) + 4}" fill="var(--mark)" style="fill:var(--mark)">61</text>`;
+  g += `<line class="cur" x1="${X(cur)}" x2="${X(cur)}" y1="${T}" y2="${H - B}"/>`;
+  for (const k of ["coalition", "opposition", "arab"]) {
+    const c = `var(${BLOC_VAR[k]})`;
+    g += `<polyline fill="none" stroke="${c}" stroke-width="2.2" points="${S.map((e, i) => X(i) + "," + Y(e.blocs[k])).join(" ")}"/>`;
+    S.forEach((e, i) => g += `<circle class="pt" data-i="${i}" cx="${X(i)}" cy="${Y(e.blocs[k])}" r="${i === cur ? 5.5 : 4}" fill="${c}" stroke="var(--card)" stroke-width="1.5"><title>${BLOC_HE[k]}: ${e.blocs[k]} · ${when(e.published || e.received)} · ${e.counted_pct}%</title></circle>`);
+    g += `<text x="${X(n - 1) - 9}" y="${Y(S[n - 1].blocs[k]) + 4}" text-anchor="end" style="fill:${c};font-weight:700;font-size:13px">${S[n - 1].blocs[k]}</text>`;
+  }
+  h.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="מנדטים לפי גוש בכל עדכון">${g}</svg>`;
+  h.querySelectorAll(".pt").forEach(p => p.addEventListener("click", () => { const i = +p.dataset.i; document.getElementById("snap").value = i; render(i); }));
+  const ps = S[S.length - 1].parties.filter(p => S.some(e => (e.parties.find(q => q.letters === p.letters) || {}).seats));
+  document.getElementById("histTbl").innerHTML = `<table><thead><tr><th>עדכון</th><th>נספר</th>${ps.map(p => `<th>${p.name}</th>`).join("")}<th>נתניהו</th><th>איזנקוט</th><th>ערבים</th></tr></thead><tbody>` +
+    S.map((e, i) => `<tr${i === cur ? ' style="font-weight:700"' : ""}><td>${when(e.published || e.received)}</td><td>${e.counted_pct}%</td>${ps.map(p => `<td>${(e.parties.find(q => q.letters === p.letters) || {}).seats || 0}</td>`).join("")}<td>${e.blocs.coalition}</td><td>${e.blocs.opposition}</td><td>${e.blocs.arab}</td></tr>`).join("") + "</tbody></table>";
+}
+
+fetch("data/nowcast_v2.json", { cache: "no-store" }).then(r => r.json()).then(j => {
   J = j;
   for (const [k, v] of Object.entries(j.blocs)) v.forEach(p => blocOf[p] = k);
   const sel = document.getElementById("snap");
@@ -207,6 +250,7 @@ fetch("data/nowcast.json", { cache: "no-store" }).then(r => r.json()).then(j => 
   sel.value = j.snapshots.length - 1;
   sel.onchange = () => render(+sel.value);
   render(j.snapshots.length - 1);
+  addEventListener("resize", () => drawHistory(+sel.value));
 });
 </script>
 </body>
