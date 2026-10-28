@@ -119,7 +119,7 @@
   <section class="card note">
     <p><b>זו הערכה סטטיסטית, לא תוצאה.</b> כל קלפי שטרם נספרה מוערכת לפי התוצאה שלה ב-2022, ובהתאם למעבר הקולות בין המפלגות שנמדד בקלפיות שכבר נספרו. בנוסף נלקחים בחשבון תיקון לפי סוג הקלפי (7 קטגוריות), תיקון לפי יישוב ושינוי בשיעור ההצבעה.</p>
     <p>המעטפות הכפולות (כ-9.6% מהקולות ב-2022) עוד לא נספרו. הן מוערכות לפי 2022 ולפי השינוי הממוצע. הטווח משקף רק את אי-הוודאות הנובעת מהדגימה, והשגיאה בפועל גדולה ממנו, בייחוד ברשימות הערביות והחרדיות כל עוד יישוביהן לא נספרו.</p>
-    <p>המקור: קבצי התוצאות של ועדת הבחירות המרכזית לפי קלפי. שעת העדכון היא השעה שבה הגיע הקובץ.</p>
+    <p>המקור: קבצי התוצאות של ועדת הבחירות המרכזית לפי קלפי. שעת העדכון היא שעת הפרסום של הקובץ באתר הוועדה (בעדכונים הראשונים, שהועברו ידנית: השעה שבה הגיע הקובץ).</p>
   </section>
 </main>
 <script>
@@ -138,7 +138,7 @@ function when(iso) {
 
 function render(i) {
   const e = J.snapshots[i], prev = J.snapshots[i - 1];
-  document.getElementById("when").textContent = when(e.received);
+  document.getElementById("when").textContent = when(e.published || e.received);
   document.getElementById("counted").textContent = fmt(e.counted);
   document.getElementById("pct").textContent = e.counted_pct.toFixed(1) + "%";
   document.getElementById("prog").style.width = e.counted_pct + "%";
@@ -203,7 +203,7 @@ fetch("data/nowcast.json", { cache: "no-store" }).then(r => r.json()).then(j => 
   J = j;
   for (const [k, v] of Object.entries(j.blocs)) v.forEach(p => blocOf[p] = k);
   const sel = document.getElementById("snap");
-  sel.innerHTML = j.snapshots.map((e, i) => `<option value="${i}">${when(e.received)} · ${e.counted_pct.toFixed(0)}%</option>`).join("");
+  sel.innerHTML = j.snapshots.map((e, i) => `<option value="${i}">${when(e.published || e.received)} · ${e.counted_pct.toFixed(0)}%</option>`).join("");
   sel.value = j.snapshots.length - 1;
   sel.onchange = () => render(+sel.value);
   render(j.snapshots.length - 1);
