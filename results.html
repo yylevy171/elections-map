@@ -25,6 +25,11 @@
   .status .lbl { font-size: 12px; color: var(--muted); display: block; }
   .snap { margin-inline-start: auto; font-size: 13px; }
   .snap select { font: inherit; padding: 3px 6px; background: var(--ctl); color: var(--fg); border: 1px solid var(--ctl-line); border-radius: 5px; }
+  .next { margin-top: 8px; font-size: 13px; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
+  .next b { font-variant-numeric: tabular-nums; }
+  .next .pulse { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--arab); margin-inline-end: 6px; animation: pl 2s infinite; }
+  @keyframes pl { 50% { opacity: .25; } }
+  .next .m { color: var(--muted); font-size: 12px; }
   .progress { height: 6px; background: var(--ctl); border-radius: 3px; overflow: hidden; margin-top: 10px; }
   .progress i { display: block; height: 100%; background: var(--fg); opacity: .55; }
   /* seat strip */
@@ -98,6 +103,7 @@
     </div>
     <div class="progress"><i id="prog"></i></div>
     <div class="legend" id="sub"></div>
+    <div class="next" id="next"></div>
   </section>
 
   <section class="tiles" id="tiles"></section>
@@ -146,7 +152,7 @@ const BLOC_HE = { coalition: "גוש נתניהו", opposition: "גוש איזנ
 const BLOC_SUB = { coalition: "ליכוד, ש״ס, יהדות התורה, עוצמה יהודית, הציונות הדתית", opposition: "ישר!, ביחד, ישראל ביתנו, הדמוקרטים, המילואימניקים, כחול לבן", arab: "הרשימה המשותפת, רע״ם" };
 const BLOC_VAR = { coalition: "--coal", opposition: "--opp", arab: "--arab" };
 const fmt = n => n.toLocaleString("he-IL");
-let J, blocOf = {};
+let J = null, blocOf = {};
 const col = p => `var(${BLOC_VAR[blocOf[p]] || "--out"})`;
 
 function when(iso) {
@@ -242,16 +248,42 @@ function drawHistory(cur) {
     S.map((e, i) => `<tr${i === cur ? ' style="font-weight:700"' : ""}><td>${when(e.published || e.received)}</td><td>${e.counted_pct}%</td>${ps.map(p => `<td>${(e.parties.find(q => q.letters === p.letters) || {}).seats || 0}</td>`).join("")}<td>${e.blocs.coalition}</td><td>${e.blocs.opposition}</td><td>${e.blocs.arab}</td></tr>`).join("") + "</tbody></table>";
 }
 
-fetch("data/nowcast_v2.json", { cache: "no-store" }).then(r => r.json()).then(j => {
+let SCHED = null;
+const hm = iso => new Date(iso).toLocaleTimeString("he-IL", { timeZone: "Asia/Jerusalem", hour: "2-digit", minute: "2-digit" });
+function showNext() {
+  const el = document.getElementById("next");
+  if (!SCHED) { el.innerHTML = ""; return; }
+  const left = (new Date(SCHED.next_check) - Date.now()) / 60000;
+  const txt = left > 0.5 ? `בעוד ${Math.round(left)} דק׳` : left > -3 ? "מתעדכן כעת…" : "העדכון מתעכב";
+  el.innerHTML = `<span><i class="pulse"></i>בדיקה הבאה של קובץ הוועדה: <b>${hm(SCHED.next_check)}</b> (${txt})</span>` +
+    `<span class="m">בדיקה אחרונה ${hm(SCHED.last_check)} · בדיקה כל ${Math.round(SCHED.every_s / 60)} דקות; התחזית מתעדכנת רק כשהוועדה מפרסמת קובץ חדש</span>`;
+  if (left < -1.5 && !showNext.busy) { showNext.busy = true; load().finally(() => showNext.busy = false); }
+}
+function load() {
+  return Promise.all([
+    fetch("data/nowcast_v2.json", { cache: "no-store" }).then(r => r.json()),
+    fetch("data/schedule.json", { cache: "no-store" }).then(r => r.ok ? r.json() : null).catch(() => null),
+  ]).then(([j, sc]) => {
+    const sel = document.getElementById("snap");
+    const wasLatest = !J || +sel.value === J.snapshots.length - 1;
+    SCHED = sc;
+    setup(j, wasLatest ? j.snapshots.length - 1 : +sel.value);
+    showNext();
+  });
+}
+setInterval(showNext, 15000);
+load();
+
+function setup(j, show) {
   J = j;
   for (const [k, v] of Object.entries(j.blocs)) v.forEach(p => blocOf[p] = k);
   const sel = document.getElementById("snap");
   sel.innerHTML = j.snapshots.map((e, i) => `<option value="${i}">${when(e.published || e.received)} · ${e.counted_pct.toFixed(0)}%</option>`).join("");
-  sel.value = j.snapshots.length - 1;
+  sel.value = show;
   sel.onchange = () => render(+sel.value);
-  render(j.snapshots.length - 1);
-  addEventListener("resize", () => drawHistory(+sel.value));
-});
+  render(show);
+  if (!setup.rs) { setup.rs = true; addEventListener("resize", () => drawHistory(+sel.value)); }
+}
 </script>
 </body>
 </html>
